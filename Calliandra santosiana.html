@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <title>Calliandra santosiana</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
+
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: Arial, sans-serif; }
+        #map { width: 100%; height: 100vh; }
+        .hover-info {
+            position: absolute; z-index: 1000; display: none; pointer-events: none;
+            background: rgba(255,255,255,0.96); border: 1px solid #bbb; border-radius: 6px;
+            padding: 8px 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 14px; line-height: 1.3;
+        }
+        .legend-box {
+            display: inline-block; width: 12px; height: 12px; margin-right: 6px;
+            vertical-align: middle; border: 1px solid rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="hover-info" class="hover-info"></div>
+
+    <script>
+        const species = "Calliandra santosiana";
+        const speciesData = [{"type":"Feature","geometry":{"type":"Point","coordinates":[-43.6,-18.116667]},"properties":{}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-43.615833,-18.007222]},"properties":{}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-43.615833,-18.007222]},"properties":{}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-43.616667,-18.007222]},"properties":{}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-43.6,-18.116667]},"properties":{}}];
+        const AOOgeometry = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"Cell width":"2 Km","Cell area":"4 Km2"},"geometry":{"type":"Polygon","coordinates":[[[-43.62725413999794,-18.00798527817652],[-43.62725413999794,-17.989998870902028],[-43.60832760741481,-17.989998870902028],[-43.60832760741481,-18.00798527817652],[-43.62725413999794,-18.00798527817652]]]}},{"type":"Feature","properties":{"Cell width":"2 Km","Cell area":"4 Km2"},"geometry":{"type":"Polygon","coordinates":[[[-43.60832760741481,-18.133890129097963],[-43.60832760741481,-18.11590372182347],[-43.58940107483168,-18.11590372182347],[-43.58940107483168,-18.133890129097963],[-43.60832760741481,-18.133890129097963]]]}}]};
+        const EOOgeometry = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"EOO":"0.538 Km2"},"geometry":{"type":"Polygon","coordinates":[[[-43.6,-18.116667],[-43.616667,-18.007222],[-43.615833,-18.007222],[-43.6,-18.116667]]]}}]};
+        const AOO_BUNDLE = {"xmin":-43.6271309,"ymin":-18.1337517,"xmax":-43.5894017,"ymax":-17.990111,"width":140,"height":533,"noDataValue":0,"tifBase64":"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"};
+        const EOO_BUNDLE = {"xmin":-43.6166206,"ymin":-18.116504,"xmax":-43.6001815,"ymax":-18.0073587,"width":61,"height":405,"noDataValue":0,"tifBase64":"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"};
+
+        const rasterLabels = {
+            "1": "Forest", "2": "Leñosas cerradas", "3": "Forest formation",
+            "4": "Savanna formation", "5": "Mangrove", "6": "Flooded forest",
+            "9": "Forest plantation", "10": "Natural non forest formation",
+            "11": "Wetland", "12": "Grassland", "13": "Other non forest formations",
+            "14": "Farming", "15": "Pasture", "18": "Agriculture",
+            "19": "Temporary crop", "20": "Sugar cane", "21": "Mosaic of uses",
+            "22": "Non vegetated area", "23": "Beach, dune and sand spot",
+            "24": "Urban area", "25": "Other non vegetated areas", "26": "Water body",
+            "27": "Non observed", "29": "Rocky outcrop", "30": "Mining",
+            "31": "Aquaculture", "32": "Salt flat", "33": "River, lake and ocean",
+            "35": "Oil palm", "36": "Perennial crop", "37": "Artificial water body",
+            "39": "Soybean", "40": "Rice", "41": "Other temporary crops",
+            "42": "Open grassland", "43": "Closed grassland", "44": "Sparse grassland",
+            "45": "Sparse natural woodlands", "46": "Coffee", "47": "Citrus",
+            "48": "Other perennial crops", "49": "Wooded sandbank vegetation",
+            "50": "Herbaceous sandbank vegetation", "51": "Urban area",
+            "52": "Infrastructure", "53": "Other urbanized areas",
+            "54": "Reservoirs (hydroelectric and water supply)",
+            "55": "Artificial lakes and ponds", "56": "Other artificial water bodies",
+            "57": "Simple crop", "58": "Multiple crops", "62": "Cotton"
+        };
+
+        const colorMap = {
+            1:"#129912", 2:"#006400", 3:"#006400", 4:"#00ff00", 5:"#687537",
+            6:"#76a5af", 7:"#29eee4", 8:"#77a605", 9:"#ad4413", 10:"#bbfcac",
+            11:"#45C2A5", 12:"#B8AF4F", 13:"#f1c232", 14:"#ffffb2", 15:"#FFD966",
+            16:"#f6b26b", 17:"#f99f40", 18:"#e974ed", 19:"#D5A6BD", 20:"#C27BA0",
+            21:"#fff3bf", 22:"#EA9999", 23:"#dd7e6b", 24:"#aa0000", 25:"#ff3d3d",
+            26:"#0000ff", 27:"#D5D5E5", 28:"#dd497f", 29:"#665a3a", 30:"#af2a2a",
+            31:"#02106f", 32:"#968c46", 33:"#0000ff", 34:"#4FD3FF", 35:"#BA6A27",
+            36:"#f3b4f1", 37:"#02106f", 38:"#02106f", 39:"#e075ad", 40:"#982c9e",
+            41:"#e787f8", 42:"#EBEBE0", 43:"#C2C2A3", 44:"#6B6B47", 45:"#D0FFD0",
+            46:"#cca0d4", 47:"#d082de", 48:"#cd49e4", 49:"#6b9932", 50:"#66ffcc",
+            51:"#aa0000", 52:"#aa0000", 53:"#aa0000", 54:"#02106f", 55:"#02106f",
+            56:"#02106f", 57:"#CC66FF", 58:"#FF6666", 59:"#006400", 60:"#8d9e8b",
+            61:"#84ff75", 62:"#ff69b4"
+        };
+
+        function hexToRgb(hex) {
+            if (!hex) return null;
+            const clean = hex.replace("#", "");
+            const bigint = parseInt(clean, 16);
+            return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes.buffer;
+        }
+
+        async function buildGeoRasterLayer(bundle, layerName, noDataValue) {
+            if (!bundle || !bundle.tifBase64) return null;
+
+            const arrayBuffer = base64ToArrayBuffer(bundle.tifBase64);
+            const georaster = await parseGeoraster(arrayBuffer);
+
+            const layer = new GeoRasterLayer({
+                georaster,
+                opacity: 1,
+                pixelValuesToColorFn: values => {
+                    const v = values[0];
+                    if (v == null || v === 0 || v === noDataValue || isNaN(v)) return null;
+                    const hex = colorMap[v];
+                    if (!hex) return null;
+                    const [r, g, b] = hexToRgb(hex);
+                    return `rgba(${r},${g},${b},1)`;
+                },
+                resolution: 256
+            });
+
+            // Guarda georaster para o hover
+            layer._georaster = georaster;
+            layer._layerName = layerName;
+
+            return layer;
+        }
+
+        function getValueAtLatLng(georaster, latlng) {
+            const { lat, lng } = latlng;
+            const { xmin, xmax, ymin, ymax, width, height, values } = georaster;
+
+            if (lng < xmin || lng > xmax || lat < ymin || lat > ymax) return null;
+
+            const col = Math.floor((lng - xmin) / (xmax - xmin) * width);
+            const row = Math.floor((ymax - lat) / (ymax - ymin) * height);
+
+            if (col < 0 || col >= width || row < 0 || row >= height) return null;
+
+            const value = georaster.values[0][row][col];
+            if (value == null || value === 0 || isNaN(value)) return null;
+
+            return value;
+        }
+
+        async function initializeMap() {
+            const worldImagery = L.tileLayer(
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                { maxZoom: 19, attribution: '&copy; World Imagery' }
+            );
+
+            const map = L.map('map', { layers: [worldImagery] });
+            const hoverInfo = document.getElementById("hover-info");
+
+            const records = L.geoJson(speciesData, {
+                onEachFeature: function (feature, layer) {
+                    const popupContent = [];
+                    for (const key in feature.properties) {
+                        popupContent.push(`${key}: ${feature.properties[key]}`);
+                    }
+                    layer.bindPopup(popupContent.join("<br>"));
+                }
+            }).addTo(map);
+
+            const layerAoo = L.geoJson(AOOgeometry, {
+                style: { fillOpacity: 0, color: 'black' }
+            }).addTo(map);
+
+            let layerEoo = null;
+            const hasEoo = !!(
+                EOOgeometry && EOOgeometry.features &&
+                EOOgeometry.features.length > 0 && EOOgeometry.features[0] !== null
+            );
+
+            if (hasEoo) {
+                layerEoo = L.geoJson(EOOgeometry, {
+                    style: { fillOpacity: 0, color: 'black' }
+                }).addTo(map);
+            }
+
+            const noDataValue = AOO_BUNDLE?.noDataValue ?? 0;
+
+            const aooRasterLayer = await buildGeoRasterLayer(AOO_BUNDLE, "AOO MapBiomas", noDataValue);
+            const eooRasterLayer = hasEoo
+                ? await buildGeoRasterLayer(EOO_BUNDLE, "EOO MapBiomas", EOO_BUNDLE?.noDataValue ?? 0)
+                : null;
+
+            if (aooRasterLayer) {
+                aooRasterLayer.addTo(map);
+                map.fitBounds(aooRasterLayer.getBounds());
+            }
+
+            if (eooRasterLayer) {
+                eooRasterLayer.addTo(map);
+            }
+
+            // Hover
+            const rasterLayers = [eooRasterLayer, aooRasterLayer].filter(Boolean);
+
+            map.on("mousemove", function (event) {
+                hoverInfo.style.display = "none";
+
+                for (const layer of rasterLayers) {
+                    if (!map.hasLayer(layer)) continue;
+
+                    const value = getValueAtLatLng(layer._georaster, event.latlng);
+                    if (value == null) continue;
+
+                    const label = rasterLabels[String(value)] || String(value);
+                    const color = colorMap[value] || "transparent";
+
+                    hoverInfo.innerHTML = `
+                        <div><strong>${layer._layerName}</strong></div>
+                        <div><span class="legend-box" style="background:${color}"></span>${label}</div>
+                        <div>Classe: ${value}</div>
+                    `;
+                    hoverInfo.style.left = `${event.originalEvent.clientX + 12}px`;
+                    hoverInfo.style.top = `${event.originalEvent.clientY + 12}px`;
+                    hoverInfo.style.display = "block";
+                    break;
+                }
+            });
+
+            map.on("mouseout", () => { hoverInfo.style.display = "none"; });
+
+            const baseMaps = { "World Imagery": worldImagery };
+            const overlayMaps = { "Coletas": records, "AOO": layerAoo };
+
+            if (aooRasterLayer) overlayMaps["AOO MapBiomas"] = aooRasterLayer;
+            if (hasEoo && layerEoo) overlayMaps["EOO"] = layerEoo;
+            if (hasEoo && eooRasterLayer) overlayMaps["EOO MapBiomas"] = eooRasterLayer;
+
+            L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+            const allLayers = [records, layerAoo];
+            if (layerEoo) allLayers.push(layerEoo);
+            const allPoints = allLayers.reduce((acc, l) => acc.concat(l.getLayers()), []);
+
+            if (allPoints.length > 0) {
+                map.fitBounds(new L.featureGroup(allPoints).getBounds());
+            } else if (aooRasterLayer) {
+                map.fitBounds(aooRasterLayer.getBounds());
+            }
+
+            new L.Control.MiniMap(
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
+            ).addTo(map);
+
+            setTimeout(() => map.invalidateSize(), 200);
+        }
+
+        initializeMap();
+    </script>
+</body>
+</html>
